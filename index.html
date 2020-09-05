@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Export XLS</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+  <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.2/dist/FileSaver.min.js"></script>
+</head>
+<body>
+  <div style='width: 500px; margin: 0 auto;'>
+    <h1 style='text-align: center;'>Export String to XLS</h1>
+    <textarea id="content" style="width: 100%; height: 500px;"></textarea>
+    <br>
+    <button id="btnExport" style='margin-top: 20px;'>Exportar</button>
+  </div>
+  <script type="text/javascript">
+    // TODO: Criar método que define categoria baseado no nome
+    // TODO: Criar select pra definir o ano vigente. Por enquanto vai ser sempre o ano atual
+    // TODO: Campo para colocar uma data. A partir dessa data para baixo os lançamentos vão ser ignorados.
+          // Vai ser obrigatório. Só pode começar a importação quando o campo estiver preenchido e válido 
+          
+    var separator = '\t '
+    var headers = ['Data', 'Descrição', 'Categoria', 'Valor', 'Situação'];
+    var months = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ']
+  
+    $(document).ready(function () {
+      $("#btnExport").click(function (e) {
+        handleClick();
+      });
+    });
+
+    function handleClick(){
+      content = $("#content").val().replace(/	/g, separator).replace(/\n/g, separator)
+      if (!content) return null;
+
+      formattedContent = formatContent(content)
+
+      var wb = XLSX.utils.book_new();
+      wb.Props = {
+        Title: 'Nubank',
+        Subject: 'Organizze',
+        CreatedDate: new Date()
+      }
+
+      wb.SheetNames.push('Organizze')
+      var ws_data = formattedContent
+      var ws = XLSX.utils.aoa_to_sheet(ws_data)
+      wb.Sheets['Organizze'] = ws
+
+      var wbout = XLSX.write(wb, { bookType: 'xls', type: 'binary' })
+
+      function s2ab(s){
+        var buf = new ArrayBuffer(s.length)
+        var view = new Uint8Array(buf)
+        for (var i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xff;
+        return buf;
+      }
+
+      saveAs(new Blob([s2ab(wbout)], { type: 'application/octet-stream'}), 'organizze.xls')
+    }
+
+    function formatContent(data){
+      contentArray = data.split(separator)
+      
+      resultArray = []
+      for (var index = 0; index < contentArray.length; index = index + 3) {
+        subArray = contentArray.slice(index, index + 3);
+
+        rawDate = subArray[0]
+        description = subArray[1]
+        value = subArray[2].replace(/\./, '')
+        if (value.match(/^-/)) continue;
+
+        // TODO: Levantar exceção se alguma das informações da tabela não estiver presente
+
+        adjustedArray = [dateFormat(rawDate), description, 'Compras', '-' + value, '']
+        resultArray.push(adjustedArray);
+      }
+
+      return [headers, ...resultArray];
+    }
+
+    function dateFormat(date){
+      day = date.match(/^\d\d/).toString();
+      month = date.match(/[a-zA-Z]+$/).toString()
+      monthIndex = months.findIndex(m => m === month) + 1
+      return day + '/' + (monthIndex < 10 ? '0' + monthIndex : monthIndex) + '/' + '2020' + ' 00:00:00';
+    }
+  </script>
+</body>
+</html>
