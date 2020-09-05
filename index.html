@@ -20,6 +20,7 @@
     // TODO: Criar select pra definir o ano vigente. Por enquanto vai ser sempre o ano atual
     // TODO: Campo para colocar uma data. A partir dessa data para baixo os lançamentos vão ser ignorados.
           // Vai ser obrigatório. Só pode começar a importação quando o campo estiver preenchido e válido 
+          // Vai ter que rolar um parse pra data. Pra conseguir comparar.
 
     var separator = '\t '
     var headers = ['Data', 'Descrição', 'Categoria', 'Valor', 'Situação'];
@@ -69,13 +70,14 @@
         subArray = contentArray.slice(index, index + 3);
 
         rawDate = subArray[0]
+        formattedDate = dateFormat(rawDate)
         description = subArray[1]
         value = subArray[2].replace(/\./, '')
         if (value.match(/^-/)) continue;
 
         // TODO: Levantar exceção se alguma das informações da tabela não estiver presente
 
-        adjustedArray = [dateFormat(rawDate), description, 'Compras', '-' + value, '']
+        adjustedArray = [formattedDate, description, 'Compras', '-' + value, '']
         resultArray.push(adjustedArray);
       }
 
