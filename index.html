@@ -7,17 +7,35 @@
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
   <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.2/dist/FileSaver.min.js"></script>
+
+  <style>
+    body {
+      font-family: sans-serif;
+    }
+  </style>
 </head>
 <body>
   <div style='width: 500px; margin: 0 auto;'>
     <h1 style='text-align: center;'>Export Nubank String to XLS</h1>
-    <textarea id="content" style="width: 100%; height: 500px;"></textarea>
+    <div style='margin-bottom: 20px;'>
+      <div style='margin-bottom: 10px;'>
+        <label for="date-stop">Data do último lançamento importado</label><br>
+        <input id='date-stop' type="text" /><br>
+        <small><i>Exemplo: 04/09/2020</i></small>
+      </div>
+      <div>
+        <label for="current-year">Ano corrente</label><br>
+        <input id='current-year' type="text" /><br>
+        <small><i>Se for deixado em branco vai ser considerado o ano atual</i></small>
+      </div>
+    </div>
+    
+    <textarea id="content" style="width: 100%; height: 370px;"></textarea>
     <br>
     <button id="btnExport" style='margin-top: 20px;'>Exportar</button>
   </div>
   <script type="text/javascript">
     // TODO: Criar método que define categoria baseado no nome
-    // TODO: Criar select pra definir o ano vigente. Por enquanto vai ser sempre o ano atual
     // TODO: Campo para colocar uma data. A partir dessa data para baixo os lançamentos vão ser ignorados.
           // Vai ser obrigatório. Só pode começar a importação quando o campo estiver preenchido e válido 
           // Vai ter que rolar um parse pra data. Pra conseguir comparar.
@@ -36,8 +54,79 @@
       content = $("#content").val().replace(/	/g, separator).replace(/\n/g, separator)
       if (!content) return null;
 
-      formattedContent = formatContent(content)
+      formattedContent = formatContent(content);
+      exportFileXLS(formattedContent);
+    }
 
+    function formatContent(data){
+      contentArray = data.split(separator)
+      
+      resultArray = []
+      for (var index = 0; index < contentArray.length; index = index + 3) {
+        subArray = contentArray.slice(index, index + 3);
+
+        rawDate = subArray[0]
+        formattedDate = dateFormat(rawDate)
+        description = subArray[1]
+        value = subArray[2].replace(/\./, '')
+
+        if (!dateConstraints(formattedDate)) continue;
+        if (!valueConstraint(value)) continue;
+
+        // TODO: Levantar exceção se alguma das informações da tabela não estiver presente
+
+        adjustedArray = [formattedDate, description, 'Compras', '-' + value, '']
+        resultArray.push(adjustedArray);
+      }
+
+      return [headers, ...resultArray];
+    }
+
+    function dateConstraints(date) {
+      dateMinimumObj = getInputMinimumDate();
+      if(!dateMinimumObj) return false
+
+      dateWithoutTime = date.replace(' 00:00:00', '');
+
+      day = dateWithoutTime.split('/')[0];
+      month = dateWithoutTime.split('/')[1];
+      year = dateWithoutTime.split('/')[2];
+
+      dateObj = new Date(Date.UTC(year, month, day, 0, 0, 0));
+
+      return dateObj > dateMinimumObj;
+    }
+
+    function getInputMinimumDate(){
+      dateMinimum = $('#date-stop').val().match(/\d\d\/\d\d\/\d\d\d\d/);
+      if (!dateMinimum) return null;
+
+      minimumDay = dateMinimum[0].split('/')[0];
+      minimumMonth = dateMinimum[0].split('/')[1];
+      minimumYear = dateMinimum[0].split('/')[2];
+
+      dateMinimumObj = new Date(Date.UTC(minimumYear, minimumMonth, minimumDay, 0, 0, 0));
+
+      return dateMinimumObj;
+    }
+
+    // TODO: Colocar um checkbox pra decidir se vai querer receitas ou despesas
+    function valueConstraint(value) {
+      return !value.match(/^-/);
+    }
+
+    function dateFormat(date){
+      day = date.match(/^\d\d/).toString();
+      month = date.match(/[a-zA-Z]+$/).toString();
+      monthIndex = months.findIndex(m => m === month) + 1;
+
+      // currentYear = $('#current-year').val().match(/\d\d\/\d\d\/\d\d\d\d/) || '2020'
+      currentYear = $('#current-year').val().match(/^\d\d\d\d$/) || '2020'
+
+      return day + '/' + (monthIndex < 10 ? '0' + monthIndex : monthIndex) + '/' + currentYear + ' 00:00:00';
+    }
+
+    function exportFileXLS(formattedContent){
       var wb = XLSX.utils.book_new();
       wb.Props = {
         Title: 'Nubank',
@@ -52,43 +141,14 @@
 
       var wbout = XLSX.write(wb, { bookType: 'xls', type: 'binary' })
 
-      function s2ab(s){
+      function s2ab(s) {
         var buf = new ArrayBuffer(s.length)
         var view = new Uint8Array(buf)
         for (var i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xff;
         return buf;
       }
 
-      saveAs(new Blob([s2ab(wbout)], { type: 'application/octet-stream'}), 'organizze.xls')
-    }
-
-    function formatContent(data){
-      contentArray = data.split(separator)
-      
-      resultArray = []
-      for (var index = 0; index < contentArray.length; index = index + 3) {
-        subArray = contentArray.slice(index, index + 3);
-
-        rawDate = subArray[0]
-        formattedDate = dateFormat(rawDate)
-        description = subArray[1]
-        value = subArray[2].replace(/\./, '')
-        if (value.match(/^-/)) continue;
-
-        // TODO: Levantar exceção se alguma das informações da tabela não estiver presente
-
-        adjustedArray = [formattedDate, description, 'Compras', '-' + value, '']
-        resultArray.push(adjustedArray);
-      }
-
-      return [headers, ...resultArray];
-    }
-
-    function dateFormat(date){
-      day = date.match(/^\d\d/).toString();
-      month = date.match(/[a-zA-Z]+$/).toString()
-      monthIndex = months.findIndex(m => m === month) + 1
-      return day + '/' + (monthIndex < 10 ? '0' + monthIndex : monthIndex) + '/' + '2020' + ' 00:00:00';
+      saveAs(new Blob([s2ab(wbout)], { type: 'application/octet-stream' }), 'organizze.xls')
     }
   </script>
 </body>
