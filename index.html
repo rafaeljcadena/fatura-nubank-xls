@@ -19,7 +19,7 @@
     <h1 style='text-align: center;'>Export Nubank String to XLS</h1>
     <div style='margin-bottom: 20px;'>
       <div style='margin-bottom: 10px;'>
-        <label for="date-stop">Data do último lançamento importado</label><br>
+        <label for="date-stop">Data mínima</label><br>
         <input id='date-stop' type="text" /><br>
         <small><i>Exemplo: 04/09/2020</i></small>
       </div>
@@ -94,7 +94,7 @@
 
       dateObj = new Date(Date.UTC(year, month, day, 0, 0, 0));
 
-      return dateObj > dateMinimumObj;
+      return dateObj >= dateMinimumObj;
     }
 
     function getInputMinimumDate(){
