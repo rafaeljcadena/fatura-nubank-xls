@@ -15,20 +15,60 @@
   </style>
 </head>
 <body>
-  <div style='width: 500px; margin: 0 auto;'>
+  <div style='max-width: 550px; margin: 0 auto;'>
     <h1 style='text-align: center;'>Export Nubank String to XLS</h1>
-    <div style='margin-bottom: 20px;'>
-      <div style='margin-bottom: 10px;'>
-        <label for="date-stop">Data mínima</label><br>
-        <input id='date-stop' type="text" /><br>
-        <small><i>Exemplo: 04/09/2020</i></small>
-      </div>
-      <div>
-        <label for="current-year">Ano corrente</label><br>
-        <input id='current-year' type="text" /><br>
-        <small><i>Se for deixado em branco vai ser considerado o ano atual</i></small>
-      </div>
-    </div>
+    <table style='width: 100%; margin-bottom: 20px;'>
+      <tr>
+        <td>
+          <div style='margin-bottom: 10px;'>
+            <label for="date-stop">Data mínima</label><br>
+            <input id='date-stop' type="text" /><br>
+            <small><i>Exemplo: 04/09/2020</i></small>
+          </div>
+          <div>
+            <label for="current-year">Ano corrente</label><br>
+            <input id='current-year' type="text" /><br>
+            <small style='width: 150px; display: block;'><i>Se for deixado em branco vai ser considerado o ano atual</i></small>
+          </div>
+        </td>
+        <td style='vertical-align: top;'>
+          <div style='margin-bottom: 10px;'>
+            <div style='display: inline-block;'>
+              <label for="filter-1">Filtro 1 - Regex</label><br>
+              <input style='width: 110px;' id='filter-1' type="text" value="ifood|eats|rappi" /><br>
+              <small><i>Exemplo: ifood|eats|rappi</i></small>
+            </div>
+            <div style='display: inline-block; vertical-align: top;'>
+              <label for="filter-category-1">Categoria</label><br>
+              <input style='width: 110px;' id='filter-category-1' type="text" value="Alimentação Apps" /><br>
+            </div>
+          </div>
+          <div style='margin-bottom: 10px;'>
+            <div style='display: inline-block;'>
+              <label for="filter-2">Filtro 2 - Regex</label><br>
+              <input style='width: 110px;' id='filter-2' type="text" value="uber|99pop" /><br>
+              <small><i>Exemplo: ifood|eats|rappi</i></small>
+            </div>
+            <div style='display: inline-block; vertical-align: top;'>
+              <label for="filter-category-1">Categoria</label><br>
+              <input style='width: 110px;' id='filter-category-2' type="text" value="Transporte Apps" /><br>
+            </div>
+          </div>
+          <div style='margin-bottom: 10px;'>
+            <div style='display: inline-block;'>
+              <label for="filter-3">Filtro 3 - Regex</label><br>
+              <input style='width: 110px;' id='filter-3' type="text" /><br>
+              <small><i>Exemplo: ifood|eats|rappi</i></small>
+            </div>
+            <div style='display: inline-block; vertical-align: top;'>
+              <label for="filter-category-1">Categoria</label><br>
+              <input style='width: 110px;' id='filter-category-3' type="text" /><br>
+            </div>
+          </div>
+        </td>
+      </tr>
+      
+    </table>
     
     <textarea id="content" style="width: 100%; height: 370px;"></textarea>
     <br>
@@ -65,21 +105,47 @@
       for (var index = 0; index < contentArray.length; index = index + 3) {
         subArray = contentArray.slice(index, index + 3);
 
-        rawDate = subArray[0]
-        formattedDate = dateFormat(rawDate)
-        description = subArray[1]
-        value = subArray[2].replace(/\./, '')
+        rawDate = subArray[0];
+        formattedDate = dateFormat(rawDate);
+        description = subArray[1];
+        category = categoryFilters(description);
+        value = subArray[2].replace(/\./, '');
 
         if (!dateConstraints(formattedDate)) continue;
         if (!valueConstraint(value)) continue;
 
         // TODO: Levantar exceção se alguma das informações da tabela não estiver presente
 
-        adjustedArray = [formattedDate, description, 'Compras', '-' + value, '']
+        adjustedArray = [formattedDate, description, category, '-' + value, ''];
         resultArray.push(adjustedArray);
       }
 
       return [headers, ...resultArray];
+    }
+
+    function categoryFilters(desc){
+      filter1 = document.getElementById('filter-1').value;
+      catFilter1 = document.getElementById('filter-category-1').value;
+
+      if(filter1 && catFilter1 && desc.match(new RegExp(filter1, 'i'))){
+        return catFilter1
+      }
+      
+      filter2 = document.getElementById('filter-2').value;
+      catFilter2 = document.getElementById('filter-category-2').value;
+
+      if (filter2 && catFilter2 && desc.match(new RegExp(filter2, 'i'))) {
+        return catFilter2;
+      }
+      
+      filter3 = document.getElementById('filter-3').value;
+      catFilter3 = document.getElementById('filter-category-3').value;
+
+      if (filter3 && catFilter3 && desc.match(new RegExp(filter3, 'i'))) {
+        return catFilter3
+      }
+
+      return 'Compras'
     }
 
     function dateConstraints(date) {
